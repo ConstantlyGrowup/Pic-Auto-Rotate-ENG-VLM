@@ -1,5 +1,65 @@
 # Pic-Auto-Rotate-ENG-VLM
 
+English | [中文](#zh)
+
+Auto-rotate RGBA (or RGB + mask) images by estimating the subject tilt angle from foreground masks. When no mask is available, it can optionally run Inspyrenet RMBG as a fallback.
+
+## Pipeline
+
+1. **Foreground acquisition**: use RGBA alpha, then external mask; otherwise RMBG fallback.
+2. **Mask cleanup**: threshold + morphological closing to reduce holes/gaps.
+3. **Geometry filtering**: largest contour only; reject too small or low-aspect masks.
+4. **Angle estimation**: compute tilt using a selected strategy; `auto` tries multiple.
+5. **Angle gating**: skip tiny angles; flag extreme ones as `suspicious`.
+6. **Rotation**: rotate around estimated center, expand canvas, preserve transparency; optional white matte.
+
+## Rotation strategies
+
+`--rotate-strategy` supports:
+
+- `top-edge`: fit a line along the top band; good for head/shoulder tops.
+- `hough`: edge + Hough median angle; good for straight boundaries.
+- `pca`: PCA on foreground pixels; robust but shape-dependent.
+- `minrect`: min-area rectangle long side; fast but sensitive to non-rect shapes.
+- `auto`: try `top-edge -> hough -> pca -> minrect` in order.
+
+## Usage
+
+```bash
+python auto_rotate.py --input ./source --output ./output --recursive
+```
+
+With external masks (same basename, suffix `_mask`):
+
+```bash
+python auto_rotate.py --input ./source --output ./output --mask-dir ./masks --mask-suffix _mask
+```
+
+White background output:
+
+```bash
+python auto_rotate.py --input ./source --output ./output --white
+```
+
+Choose a strategy:
+
+```bash
+python auto_rotate.py --input ./source --output ./output --rotate-strategy hough
+```
+
+## RMBG model note
+
+This repo does not include `rmbg-model/inspyrenet.safetensors` due to size. To enable local background removal, download the model and place it at that path, or use `--rmbg-model` to point to it.
+
+Model download: https://www.modelscope.cn/models/greenCrystal/inspyrenet
+
+---
+
+<a id="zh"></a>
+## 中文说明
+
+中文 | [English](#pic-auto-rotate-eng-vlm)
+
 基于前景掩码/Alpha 的自动旋转工具。适用于 RGBA 图、或 RGB + 独立 mask 的批量纠偏；当没有 mask 时可选用 Inspyrenet 抠图作为回退。
 
 ## 工程化流程
